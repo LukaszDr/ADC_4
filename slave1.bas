@@ -62,8 +62,17 @@ Led Alias Portd.led_pin
 'auto ADC
 Config Adc = Single , Prescaler = Auto , Reference = Avcc
 
-Dim W As Word , Channel As Byte
-Channel = 0
+'Dim W As Word , Channel As Byte
+'Channel = 0
+
+
+'odpalenie timera
+Config Timer1 = Timer , Prescale = 64
+
+On Timer1 Oblicz_adc
+Timer1 = 100
+
+Enable  TIMER1
 
 
 
@@ -112,8 +121,12 @@ Do
 
 Loop
 
-'!Oblicz_ADC
+Oblicz_adc:
+   Print "LICZNIK"
+Return
 
+
+'ZMIANA ZMIANA
 
 Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
    push rstemp                                              'o ile potrzeba - sprawdziæ
