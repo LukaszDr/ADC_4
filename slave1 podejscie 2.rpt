@@ -1,6 +1,6 @@
 Report       : slave1 podejscie 2
 Date         : 05-22-2016
-Time         : 18:10:45
+Time         : 19:21:38
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,8 +8,8 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : 634 hex  -> Will fit into ROM
-ROMIMAGE     :  1588 dec
+ROMIMAGE     : 618 hex  -> Will fit into ROM
+ROMIMAGE     :  1560 dec
 FLASH USED   :  2  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz

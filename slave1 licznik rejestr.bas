@@ -32,6 +32,8 @@ Temp Alias R16
 Temph Alias R17
 Rstemp Alias R18
 Rsdata Alias R19
+'LICZNIK
+Count Alias R21
 'pozosta³e aliasy
 Te_pin Alias 4
 Te Alias Portd.te_pin                                       'sterowanie przep³ywem w nadajniku/odbiorniku linii
@@ -141,9 +143,19 @@ Do
 Loop
 
 Oblicz_adc:
+   Timer1 = 0
    Licznik = Licznik + 1
-   Print Licznik
+'   Print Licznik
+'   INC Count
+'   cpi Count,16
+'      brNE obliczenia
 Return
+
+!obliczenia:
+   Print "DOLICZONO DO 16"
+   CLR Count
+   Licznik = 0
+   Ret
 
 
 'ZMIANA ZMIANA

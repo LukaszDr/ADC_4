@@ -32,87 +32,43 @@ Temp Alias R16
 Temph Alias R17
 Rstemp Alias R18
 Rsdata Alias R19
-'LICZNIK
+'LICZNIK  ile bylo konwersji
 Count Alias R25
 'pozosta³e aliasy
 Te_pin Alias 4
 Te Alias Portd.te_pin                                       'sterowanie przep³ywem w nadajniku/odbiorniku linii
 
-'Led_pin Alias 5
-'Led Alias Portd.led_pin
-
-
-'Led_reg Alias Ddrd  'rejestr kontrolki nadawania, gdy anoda LED -> Ucc
-'Led_reg Alias Portd 'rejestr kontrolki nadawania, gdy katoda LED -> GND
-'Led_pin Alias 7     'numer wyprowadzenia portu dla kontrolki
-
-
-'DEFINICJA ADC
-'Ldi rstemp,0
-'!out ddrA,rstemp
-'Ldi rstemp, 2
-'!out porta,rstemp
-
-'LDI rstemp, &B11100001
-'!OUT ADMUX, rstemp
-
-'LDI rstemp, &B10000000
-'!OUT ADCSRA, rstemp
-
-
-
-'auto ADC
+'Config ADC
 Config Adc = Single , Prescaler = Auto , Reference = Avcc
 
-'Dim W As Word , Channel As Byte
-'Channel = 0
-
-
-'odpalenie timera
-
-'Config Timer1 = Timer , Prescale = 64
-
-'On Timer1 Oblicz_adc
-'Timer1 = 0
-'Ocr1a = 14400
-
-
-
-'Enable Timer1
-'Start Timer1
-
-'NOWY TIMER
+'USTAWIENIE TIMERA
 Config Timer1 = Timer , Prescale = 64 , Compare A = Disconnect , Clear Timer = 1
 Stop Timer1
-Timer1 = 0
-Ocr1a = 14400
+Timer1 = 0                                                  'wARTOSC POCZ, RACZEJ NIEPOTRZEBNE
+Ocr1a = 14400                                               'WARTOSC DO ZLICZENIA
 
-On Oc1a Oblicz_adc Nosave
-
+On Oc1a Oblicz_adc Nosave                                   'wlaczenie przerwania timera
 Enable Oc1a
+                                                             'start timera
 Start Timer1
-
-
-
-
-
-
 
 On Urxc1 Usart_rx Nosave                                    'deklaracja przerwania URXC (odbiór znaku USART)
 On Utxc1 Usart_tx_end Nosave                                'deklaracja przerwania UTXC, koniec nadawania
 
-'deklarowanie zmiennych
-Dim Adrw As Byte                                            'adres w³asny
-Dim Adro As Byte
-Dim Bajt As Byte
+'UStawienia obrabiania danych
 Dim Prescadc As Word
 Dim Offset As Word
 
-Dim Suma As Word
-Suma = 0
-Adrw = 1
 Prescadc = 5
 Offset = 1000                                               'adres odbiorcy 0...15
+
+
+'SUMA - do niej zliczam kolejne odczyty
+Dim Suma As Word
+Suma = 0
+
+'Adrw = 1    niepotrzebne
+                                             'adres odbiorcy 0...15
 
 'ZMIENNE TYSIACE ITD
 Dim T As Integer
@@ -120,6 +76,13 @@ Dim S As Integer
 Dim D As Integer
 Dim J As Integer
 Dim Asuma As Integer
+
+'CZY PRZYSZLO BOF
+Dim Czekamnaeof As Byte
+Czekamnaeof = 0
+
+
+''RAMKI
 
 Const Bof_bit = &B11000000
 Const Bofm_bit = &B10000001
@@ -129,29 +92,20 @@ Const Bofs_bit = &B11000001
 Const Eofs_bit = &B10000001
 Const Eofm_bit = &B10100010
 
-Dim Stanodbioru As Byte
-Stanodbioru = 0
+'ZNAKI ASCII
+
+Const Znaku = &B01010101
+Const Znaka = &B01000001
+Const Znakrowne = &B00111101
+Const Znakm = &B01101101
 
 
-'SBI Ddrd,Led_pin
 
 rcall usart_init                                            'inicjalizacja USARTów i w³¹czenie przerwañ
 Sei                                                         'w³¹czenie globalnie przerwañ
 
 
 Do
-'   sbi adcsra,6
-'   W = Getadc(channel)
-'   Waitms 1000
-'   Print "Channel " ; Channel ; " value " ; W
-
-'   !petla_adc:
-'   SBIC ADCSRA, 4
-'      RJMP petla_ADC
-'   Waitms 1000
-'   rcall dioda
-'   Print "ADC: " ; Adc
-
 
 Loop
 
@@ -173,7 +127,7 @@ Oblicz_adc:
    !czekaj_adc:
    SBiC ADCSRA, 4
       RJMP czekaj_adc
-'   Print "ADC:" ; Adc
+'   Print "ADC:" ; Adc    'KONTROLNIE
    Suma = Suma + Adc
    cpi Count,16
       brEQ obliczenia
@@ -194,7 +148,7 @@ Return
    Suma = Suma / 16
    Suma = Suma * Prescadc
    Suma = Suma + Offset
-   Print "Srednia: " ; Suma
+'   Print "Srednia: " ; Suma  'KONTROLNIE
    T = Suma / 1000
    Asuma = T * 1000
    Suma = Suma - Asuma
@@ -208,17 +162,16 @@ Return
    Suma = Suma - Asuma
 
    J = Suma
-
-   Print "T: " ; T
-   Print "S: " ; S
-   Print "D: " ; D
-   Print "J: " ; J
+' KONTROLNIE
+'   Print "T: " ; T
+'   Print "S: " ; S
+'   Print "D: " ; D
+'   Print "J: " ; J
+   RCALL wyslij
    CLR Count
    Suma = 0
    Ret
 
-
-'ZMIANA ZMIANA
 
 Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
    push rstemp                                              'o ile potrzeba - sprawdziæ
@@ -242,11 +195,71 @@ Usart_rx:                                                   'etykieta bascomowa 
    !out sreg,rstemp
    pop rstemp
 Return
-                                             '
+
+!wyslij:
+         Te = 1
+      ldi rstemp,bofmaster_bit
+      !out udr0,rstemp
+
+      RCALL czekajUDR0
+      LDI rstemp, znaku
+      !out udr0, rstemp
+
+      RCALL czekajUDR0                                      'ZNAK A
+      LDI rstemp, znaka
+      !out udr0, rstemp
+
+      RCALL czekajUDR0                                      'ZNAK =
+      LDI rstemp, znakrowne
+      !out udr0, rstemp
+
+      RCALL czekajUDR0
+      LDS rstemp, {T}
+      subi rstemp, -48                                      'TYSIACE
+      !OUT UDR0, rstemp
+
+      RCALL czekajUDR0
+      LDS rstemp, {S}
+      subi rstemp, -48                                      'Setki
+      !OUT UDR0, rstemp
+
+      RCALL czekajUDR0
+      LDS rstemp, {D}
+      subi rstemp, -48                                      'dziesiatki
+      !OUT UDR0, rstemp
+
+
+      RCALL czekajUDR0
+      LDS rstemp, {J}
+      subi rstemp, -48                                      'jednosci
+      !OUT UDR0, rstemp
+
+      RCALL czekajUDR0                                      'ZNAK m
+      LDI rstemp, znakm
+      !out udr0, rstemp
+
+      RCALL czekajUDR0                                      'ZNAK m
+      LDI rstemp, znakm
+      !out udr0, rstemp
+
+      RCALL czekajUDR0                                      'EOF
+      ldi rstemp,eofs_bit
+      !out udr0,rstemp
+      RET
+                                                '
+!czekajUDR0:
+      sbiS ucsr0a,udre0                                     'czekaj na udr0
+      rjmp czekajUDR0
+      RET
+
+!czekajUDR1:
+      sbiS ucsr1a,udre1                                     'czekaj na udr1
+      rjmp czekajUDR1
+      RET
 
 !rs_rx:
    in rsdata,udr1
-   lDs rstemp, {stanodbioru}
+   lDs rstemp, {Czekamnaeof}
    cpi rstemp,1
       breq koniec_ramki
    cpi rsdata,bofm_bit
@@ -254,7 +267,7 @@ Return
    ret
 
    ldi rstemp,1
-   sts {stanodbioru},rstemp
+   sts {Czekamnaeof},rstemp
   ret
 
    !koniec_ramki:
@@ -262,30 +275,52 @@ Return
       sbis sreg,1
      Ret
       ldi rstemp,0
-      sts {stanodbioru},rstemp
+      sts {Czekamnaeof},rstemp
 
       Te = 1
       ldi rstemp,bofmaster_bit
       !out udr1,rstemp
 
-      ldi rstemp,40
-      !wyslij_liczby:
+      RCALL czekajUDR1                                       'ZNAK U
+      LDI rstemp, znaku
+      !out udr1, rstemp
 
-      !pusty_UDR:
-      sbiS ucsr1a,udre1                                     'petla gdy udre1 jest zajety
-      rjmp pusty_UDR
+      RCALL czekajUDR1                                      'ZNAK A
+      LDI rstemp, znaka
+      !out udr1, rstemp
+
+      RCALL czekajUDR1                                      'ZNAK =
+      LDI rstemp, znakrowne
+      !out udr1, rstemp
+
+      RCALL czekajUDR1
+      LDS rstemp, {T}
+      subi rstemp, -48                                      'TYSIACE
+      !OUT UDR1, rstemp
+
+      RCALL czekajUDR1
+      LDS rstemp, {S}
+      subi rstemp, -48                                      'Setki
+      !OUT UDR1, rstemp
+
+      RCALL czekajUDR1
+      LDS rstemp, {D}
+      subi rstemp, -48                                      'dziesiatki
+      !OUT UDR1, rstemp
 
 
+      RCALL czekajUDR1
+      LDS rstemp, {J}
+      subi rstemp, -48                                      'jednosci
+      !OUT UDR1, rstemp
 
+      RCALL czekajUDR1                                      'ZNAK m
+      LDI rstemp, znakm
+      !out udr1, rstemp
 
- '     !out udr1,rstemp
- '     inc rstemp
- '     cpi rstemp,120
- '        brne wyslij_liczby
-
-      !pusty_UDR1:
-      sbiS ucsr1a,udre1                                     'petla gdy udre1 jest zajety
-      rjmp pusty_UDR1
+      RCALL czekajUDR1                                      'ZNAK m
+      LDI rstemp, znakm
+      !out udr1, rstemp
 
       ldi rstemp,eofs_bit
       !out udr1,rstemp
@@ -324,16 +359,3 @@ Return
    Enable Urxc1
    Enable Utxc1
 ret
-
-'!dioda:
-'            Sbis portd,led_pin
-'      rjmp zapal_led
-'   sbic portd,led_pin
-'      rjmp zgas_led
-'   !zapal_led:
-'      Led = 1
-'      rjmp wyslij
-'   !zgas_led:
-'      Led = 0
-'      !wyslij:
-'      ret

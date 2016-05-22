@@ -1,6 +1,6 @@
-Report       : slave1
+Report       : slave1 licznik rejestr
 Date         : 05-22-2016
-Time         : 17:04:26
+Time         : 17:02:56
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,9 +8,9 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : 338 hex  -> Will fit into ROM
-ROMIMAGE     :  824 dec
-FLASH USED   :  1  %
+ROMIMAGE     : 28E hex  -> Will fit into ROM
+ROMIMAGE     :  654 dec
+FLASH USED   :  0  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz
 BAUD error   : 0.%

@@ -1,18 +1,3 @@
-'program testowy komunikacji na magistarli RS485
-'znaki nadane w terminalu na jednym komputerze s¹ wysy³ane gdy adres odbiorcy 0
-'wpisuj¹c znaki najpierw wpisaæ dwa znaki adresu, potem tekst do wys³ania i enter
-
-'zadania:
-'1. w procedurze odbioru wprowadziæ weryfikacjê adresu zawartego w BOF,
-'2. wprowadziæ EOF,
-'3. wprowadziæ automatyczne odpowiedzi ramk¹ potwierdzenia odbioru,
-'4. zastosowaæ przerwanie UDRE1,
-'5. wprowadziæ dwudzielnoœæ bufora tabin(), jedna po³owa s³uzy do nadawania,
-'a druga do odbioru znaków lub wprowadziæ bufor pierœcieniowy.
-
-'by Marcin Kowalczyk
-
-'obliczenia parametrów konfiguracyjnych
 Const Prescfc = 0                                           'potêga dzielnika czêstotliwoœci taktowania procesora
 Const Fcrystal =(14745600 /(2 ^ Prescfc))                   'czêstotliwoœæ po przeskalowaniu
 'sta³e konfiguracujne USARTów
@@ -23,8 +8,7 @@ Const _ubrr1 =(((fcrystal / Baundrs1) / 16) - 1)            'potrzebne w nastêpn
 
 'konfigurowanie mikrokontrolera
 $regfile = "m644pdef.dat"                                   'plik konfiguracyjny z literk¹ "p" w nazwie
-$crystal = Fcrystal
-'$baud = Baundrs0    'zbêdne gdy inicjalizacja w zdefiniowanej procedurze
+$crystal = Fcrystal                                         ' informuje program jaka jest czêstotliwoœæ taktowania
 
 
 'aliasy rejestrów procesora
@@ -36,117 +20,94 @@ Rsdata Alias R19
 Te_pin Alias 4
 Te Alias Portd.te_pin                                       'sterowanie przep³ywem w nadajniku/odbiorniku linii
 
-Led_pin Alias 5
-Led Alias Portd.led_pin
 
+Licznik Alias R20                                           'doliczanie do 16 operacji
+Config Adc = Single , Prescaler = Auto , Reference = Avcc   'Reference off - z mikro (chyba), Avcc - napiêcie zasilania
 
-'Led_reg Alias Ddrd  'rejestr kontrolki nadawania, gdy anoda LED -> Ucc
-'Led_reg Alias Portd 'rejestr kontrolki nadawania, gdy katoda LED -> GND
-'Led_pin Alias 7     'numer wyprowadzenia portu dla kontrolki
-
-
-'DEFINICJA ADC
-'Ldi rstemp,0
-'!out ddrA,rstemp
-'Ldi rstemp, 2
-'!out porta,rstemp
-
-'LDI rstemp, &B11100001
-'!OUT ADMUX, rstemp
-
-'LDI rstemp, &B10000000
-'!OUT ADCSRA, rstemp
-
-
-
-'auto ADC
-Config Adc = Single , Prescaler = Auto , Reference = Avcc
-
-'Dim W As Word , Channel As Byte
-'Channel = 0
-
-
-'odpalenie timera
-
-'Config Timer1 = Timer , Prescale = 64
-
-'On Timer1 Oblicz_adc
-'Timer1 = 0
-'Ocr1a = 14400
-
-
-
-'Enable Timer1
-'Start Timer1
-
-'NOWY TIMER
-Config Timer1 = Timer , Prescale = 64 , Compare A = Disconnect , Clear Timer = 1
+Config Timer1 = Timer , Prescale = 1024 , Compare A = Disconnect , Clear Timer = 1       'konfiguracja timera
 Stop Timer1
-Timer1 = 0
-Ocr1a = 14400
+Ocr1a = 900
+'sprawdziæ czy TIMER1=0 jest potrzebne, w tym rejestrze zmienia siê wartoœæ
 
-On Oc1a Oblicz_adc Nosave
+On Oc1a Odczytadc Nosave                                    'przy przerwaniu Oc1a (od licznika) skocz do ADC
 
-Enable Oc1a
-Start Timer1
-
-
-
-
-
-
+Enable Oc1a                                                 'w³¹czenie konkretnego przerwania Oc1a
 
 On Urxc1 Usart_rx Nosave                                    'deklaracja przerwania URXC (odbiór znaku USART)
 On Utxc1 Usart_tx_end Nosave                                'deklaracja przerwania UTXC, koniec nadawania
 
-'deklarowanie zmiennych
-Dim Adrw As Byte                                            'adres w³asny
-Dim Adro As Byte
-Dim Bajt As Byte
-Adrw = 1                                                    'adres odbiorcy 0...15
-Const Bof_bit = &B11000000
-Const Bofm_bit = &B10000001
-Const Bofmaster_bit = &B11000010
-Const Bofs_bit = &B11000001
 
-Const Eofs_bit = &B10000001
+'deklarowanie zmiennych                                      'adres w³asny
+Dim Adrw As Byte                                            'adres odbiorcy 0...15
+Dim Adro As Byte                                            ' word bo 2 bity
+Dim Srednia As Word
+Dim Wartosc As Word
+                                                             'ka¿dy wysy³a na pocz¹tku transmisji, je¿eli pojawi siê beggin of frame mastera to nas³uchuje
+Const Bof_bit = &B11000000                                  'KOWALCZYK - PDF
+Const Bofm_bit = &B10001101
+Const Bofmaster_bit = &B11000010
+Const Bofs_bit = &B11001101
+
+Const Eofs_bit = &B10001101
 Const Eofm_bit = &B10100010
 
-Dim Stanodbioru As Byte
-Stanodbioru = 0
+Dim Odbior As Byte
+Odbior = 0
 
-Dim Licznik As Byte
-Licznik = 0
+rcall usart_init                                            'funkcja która inicjalizuje usarta
+Start Timer1                                               'w³¹czenie timera
 
-SBI Ddrd,Led_pin
-
-rcall usart_init                                            'inicjalizacja USARTów i w³¹czenie przerwañ
 Sei                                                         'w³¹czenie globalnie przerwañ
 
-
 Do
-'   sbi adcsra,6
-'   W = Getadc(channel)
-'   Waitms 1000
-'   Print "Channel " ; Channel ; " value " ; W
 
-'   !petla_adc:
+'SBI ADCsra, 6
+'
+'   !czekaj1:
+'                                                            'je¿eli =0, przeskoczê linijke
 '   SBIC ADCSRA, 4
-'      RJMP petla_ADC
+'   RJMP czekaj1
+'   Wartosc = Adc / 16
+'   Print Adc
 '   Waitms 1000
-'   rcall dioda
-'   Print "ADC: " ; Adc
 
 
 Loop
 
-Oblicz_adc:
-   Licznik = Licznik + 1
-   Print Licznik
-Return
 
 
-'ZMIANA ZMIANA
+Odczytadc:
+   push rstemp                                              'o ile potrzeba - sprawdziæ
+   in rstemp,sreg                                           'o ile potrzeba  - sprawdziæ
+   push rstemp                                              'o ile potrzeba - sprawdziæ
+   push rsdata                                              'o ile potrzeba  - sprawdziæ
+   push yl                                                  'o ile potrzeba  - sprawdziæ
+   push yh                                                  'o ile potrzeba  - sprawdziæ
+   push r1                                                  'o ile potrzeba  - sprawdziæ
+   push r0                                                  'o ile potrzeba  - sprawdziæ
+   !cli
+
+   INC Licznik                                              'inkrementacja licznila
+   SBI ADCsra, 6
+
+   !czekaj:
+                                                            'je¿eli =0, przeskoczê linijke
+   SBIC ADCSRA, 4
+   RJMP czekaj
+   Wartosc = Adc / 16
+   Print Adc
+
+   sei
+   pop r0
+   pop r1
+   pop yh
+   pop yl
+   pop rsdata
+   pop rstemp
+   !out sreg,rstemp
+   pop rstemp
+
+   Return
 
 Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
    push rstemp                                              'o ile potrzeba - sprawdziæ
@@ -170,11 +131,11 @@ Usart_rx:                                                   'etykieta bascomowa 
    !out sreg,rstemp
    pop rstemp
 Return
-                                             '
+
 
 !rs_rx:
    in rsdata,udr1
-   lDs rstemp, {stanodbioru}
+   lDs rstemp, {Odbior}
    cpi rstemp,1
       breq koniec_ramki
    cpi rsdata,bofm_bit
@@ -182,7 +143,7 @@ Return
    ret
 
    ldi rstemp,1
-   sts {stanodbioru},rstemp
+   sts {Odbior},rstemp
   ret
 
    !koniec_ramki:
@@ -190,7 +151,7 @@ Return
       sbis sreg,1
      Ret
       ldi rstemp,0
-      sts {stanodbioru},rstemp
+      sts {Odbior},rstemp
 
       Te = 1
       ldi rstemp,bofmaster_bit
@@ -224,8 +185,6 @@ Usart_tx_end:                                               'przerwanie wyst¹pi 
    'to samo co CBI PORTD,TE_pin, brak zmian w SREG
 Return
 
-
-
 !usart_init:
 'procedura inicjalizacji USARTów
    ldi temp,0
@@ -249,16 +208,3 @@ Return
    Enable Urxc1
    Enable Utxc1
 ret
-
-!dioda:
-            Sbis portd,led_pin
-      rjmp zapal_led
-   sbic portd,led_pin
-      rjmp zgas_led
-   !zapal_led:
-      Led = 1
-      rjmp wyslij
-   !zgas_led:
-      Led = 0
-      !wyslij:
-      ret
