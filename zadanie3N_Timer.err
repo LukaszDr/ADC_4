@@ -1,0 +1,3 @@
+Error : 46    Line :   80    Assignment error [W: 0   GETADC(0): 200]  , in File : C:\Users\Drelu\Desktop\mikroprocki\zadanie3N_Timer.bas
+Error : 42    Line :   81    Numeric parameter expected [W]  , in File : C:\Users\Drelu\Desktop\mikroprocki\zadanie3N_Timer.bas
+Error : 124   Line :   81    LOOP expected  , in File : C:\Users\Drelu\Desktop\mikroprocki\zadanie3N_Timer.bas
