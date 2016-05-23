@@ -63,6 +63,20 @@ Prescadc = 5
 Offset = 0
 
 
+'WL i WH
+Dim Wl As Integer
+Dim Wh As Integer
+Dim Wartdziel As Integer
+Dim Tempbyte As Byte
+
+Wl = 200
+Wh = 800
+Wartdziel = Wh - Wl
+Wartdziel = Wartdziel / 100
+Wl = Wl / Wartdziel
+Wh = Wh / Wartdziel
+
+
 'SUMA - do niej zliczam kolejne odczyty
 Dim Suma As Word
 Suma = 0
@@ -145,13 +159,43 @@ Oblicz_adc:
 Return
 
 !obliczenia:
+'   Print "WL: " ; Wl
+'   Print "WH: " ; Wh
    Suma = Suma / 16
-   Suma = Suma * Prescadc
-   Suma = Suma + Offset
+   Suma = Suma / Wartdziel                                  '//przeskalowanie
+
+'   Print "SUMA po dzielenie: " ; Suma
+
+
+   Tempbyte = Suma
+   LDS rstemp, {Tempbyte}
+   Tempbyte = Wl
+   LDS rsdata, {Tempbyte}
+   !SUB rstemp, rsdata
+   SBIC SREG, 2
+      RJMP mniejsze
+
+
+
+
+   Tempbyte = Suma
+   LDS rstemp, {Tempbyte}
+   Tempbyte = Wh
+   LDS rsdata ,{Tempbyte}
+   !SUB rsdata, rstemp
+   SBIC SREG, 2
+       RJMP wieksze
+
+   Suma = Suma - Wl
+
+   Kont:
+'   Print "Suma finalnie " ; Suma
+'   Suma = Suma * Prescadc
+'   Suma = Suma + Offset
 '   Print "Srednia: " ; Suma  'KONTROLNIE
-   T = Suma / 1000
-   Asuma = T * 1000
-   Suma = Suma - Asuma
+'   T = Suma / 1000
+'   Asuma = T * 1000
+'   Suma = Suma - Asuma
 
    S = Suma / 100
    Asuma = S * 100
@@ -171,7 +215,13 @@ Return
    CLR Count
    Suma = 0
    Ret
+!mniejsze:
+    Suma = 0
+    RJMP kont
 
+!wieksze:
+   Suma = 100
+   RJMP kont
 
 Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
    push rstemp                                              'o ile potrzeba - sprawdziæ
@@ -196,6 +246,7 @@ Usart_rx:                                                   'etykieta bascomowa 
    pop rstemp
 Return
 
+
 !wyslij:
          Te = 1
       ldi rstemp,bofmaster_bit
@@ -213,10 +264,10 @@ Return
       LDI rstemp, znakrowne
       !out udr0, rstemp
 
-      RCALL czekajUDR0
-      LDS rstemp, {T}
-      subi rstemp, -48                                      'TYSIACE
-      !OUT UDR0, rstemp
+'      RCALL czekajUDR0
+'      LDS rstemp, {T}
+'      subi rstemp, -48                                      'TYSIACE
+'      !OUT UDR0, rstemp
 
       RCALL czekajUDR0
       LDS rstemp, {S}
@@ -293,10 +344,10 @@ Return
       LDI rstemp, znakrowne
       !out udr1, rstemp
 
-      RCALL czekajUDR1
-      LDS rstemp, {T}
-      subi rstemp, -48                                      'TYSIACE
-      !OUT UDR1, rstemp
+'      RCALL czekajUDR1
+'      LDS rstemp, {T}
+'      subi rstemp, -48                                      'TYSIACE
+'      !OUT UDR1, rstemp
 
       RCALL czekajUDR1
       LDS rstemp, {S}
