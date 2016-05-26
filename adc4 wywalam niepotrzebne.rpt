@@ -1,6 +1,6 @@
-Report       : ADC 4 Lukasz Drelich wl i wh
-Date         : 05-23-2016
-Time         : 18:54:31
+Report       : adc4 wywalam niepotrzebne
+Date         : 05-26-2016
+Time         : 13:56:09
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,8 +8,8 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : 598 hex  -> Will fit into ROM
-ROMIMAGE     :  1432 dec
+ROMIMAGE     : 6E0 hex  -> Will fit into ROM
+ROMIMAGE     :  1760 dec
 FLASH USED   :  2  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz
@@ -21,7 +21,7 @@ S-Stacksize  : 10 hex
 S-Stackstart : 10D8 hex
 Framesize    : 20 hex
 Framestart   : 10A8 hex
-Space left   :  3983  dec
+Space left   :  3985  dec
 
 LCD DB7      : PORTB.7
 LCD DB6      : PORTB.6
@@ -72,12 +72,11 @@ WH                               Integer           0106          262
 WARTDZIEL                        Integer           0108          264 
 TEMPBYTE                         Byte              010A          266 
 SUMA                             Word              010B          267 
-T                                Integer           010D          269 
-S                                Integer           010F          271 
-D                                Integer           0111          273 
-J                                Integer           0113          275 
-ASUMA                            Integer           0115          277 
-CZEKAMNAEOF                      Byte              0117          279 
+S                                Integer           010D          269 
+D                                Integer           010F          271 
+J                                Integer           0111          273 
+ASUMA                            Integer           0113          275 
+CZEKAMNAEOF                      Byte              0115          277 
 
 --------------------------------------------------------------------------------
 Constant                         Value
@@ -900,5 +899,4 @@ PWM0A                            not used
 PWM0B                            not used
 PWM2A                            not used
 PWM2B                            not used
-T                                not used
 

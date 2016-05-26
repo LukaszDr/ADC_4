@@ -1,6 +1,6 @@
-Report       : ADC 4 Lukasz Drelich wl i wh
-Date         : 05-23-2016
-Time         : 18:54:31
+Report       : adc4 uart master
+Date         : 05-26-2016
+Time         : 13:43:23
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,8 +8,8 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : 598 hex  -> Will fit into ROM
-ROMIMAGE     :  1432 dec
+ROMIMAGE     : 760 hex  -> Will fit into ROM
+ROMIMAGE     :  1888 dec
 FLASH USED   :  2  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz
