@@ -131,7 +131,7 @@ Oblicz_adc:
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
-   !cli
+ '  !cli
 
 
    INC Count
@@ -145,7 +145,7 @@ Oblicz_adc:
       brEQ obliczenia
 
 
-   sei
+ '  sei
    pop r0
    pop r1
    pop yh
@@ -197,7 +197,10 @@ Return
    J = Suma
    CLR Count
    Suma = 0
-   Print "po obliczeniach: " ; S ; D ; J
+'   Print "po obliczeniach: " ; S ; D ; J
+   Writeeeprom J , 30
+   Writeeeprom D , 31
+   Writeeeprom S , 32
    Ret
 !mniejsze:
     Suma = 0
@@ -257,7 +260,7 @@ Return
       ldi rstemp,0
       sts {Czekamnaeof},rstemp
 
-         Print "przed nad: " ;  S ; D ; J   
+ '        Print "przed nad: " ; S ; D ; J
 
       Te = 1
       ldi rstemp,bofmaster_bit                              'BOF
@@ -275,17 +278,21 @@ Return
       LDI rstemp, znakrowne
       !out udr1, rstemp
 
+      Readeeprom S , 32
       RCALL czekajUDR1
       LDS rstemp, {S}
       subi rstemp, -48                                      'Setki
       !OUT UDR1, rstemp
 
+
+      readeeprom D, 31
       RCALL czekajUDR1
       LDS rstemp, {D}
       subi rstemp, -48                                      'dziesiatki
       !OUT UDR1, rstemp
 
 
+      Readeeprom J , 30
       RCALL czekajUDR1
       LDS rstemp, {J}
       subi rstemp, -48                                      'jednosci
