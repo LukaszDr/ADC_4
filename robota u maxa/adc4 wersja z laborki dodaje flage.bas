@@ -34,6 +34,7 @@ Rstemp Alias R18
 Rsdata Alias R19
 'LICZNIK  ile bylo konwersji
 Count Alias R25
+Flag Alias R26
 'pozosta³e aliasy
 Te_pin Alias 4
 Te Alias Portd.te_pin                                       'sterowanie przep³ywem w nadajniku/odbiorniku linii
@@ -64,9 +65,9 @@ Offset = 0
 
 
 'WL i WH
-Dim Wl As Integer
-Dim Wh As Integer
-Dim Wartdziel As Integer
+Dim Wl As Long
+Dim Wh As Long
+Dim Wartdziel As Word
 Dim Tempbyte As Byte
 
 Wl = 200
@@ -78,17 +79,17 @@ Wh = Wh / Wartdziel
 
 
 'SUMA - do niej zliczam kolejne odczyty
-Dim Suma As Word
+Dim Suma As Long
 Suma = 0
 
 'Adrw = 1    niepotrzebne
                                              'adres odbiorcy 0...15
 
 'ZMIENNE TYSIACE ITD
-Dim S As Integer
-Dim D As Integer
-Dim J As Integer
-Dim Asuma As Integer
+Dim S As Byte
+Dim D As Byte
+Dim J As Byte
+Dim Asuma As Word
 
 'CZY PRZYSZLO BOF
 Dim Czekamnaeof As Byte
@@ -120,7 +121,75 @@ Sei                                                         'w³¹czenie globalnie
 
 Do
 
+   cpi flag,1
+   sbic sreg,1
+      rcall obliczenia
 Loop
+
+!obliczenia:
+'   Print "Przed wszystkim:" ; Suma
+'   Suma = Suma / 16                                         'usrednienie
+'   Print "Na poczatku: " ; Suma
+   Suma = Suma / Wartdziel                                  '//przeskalowanie
+   Print "po wartdziel: " ; Suma
+
+
+'   Tempbyte = Suma
+   LDS rstemp, {Suma}
+'   Tempbyte = Wh
+   LDS rsdata ,{Wh}
+   !SUB rstemp, rsdata
+   'BRLO wieksze
+   SBIS SREG, 0
+       RJMP wieksze
+
+
+
+   Tempbyte = Suma
+   LDS rstemp, {Suma}
+   Tempbyte = Wl
+   LDS rsdata ,{Wl}
+   !SUB rstemp, rsdata
+'   BRLO mniejsze
+   SBIC SREG, 2
+      RJMP mniejsze
+
+
+
+
+   Suma = Suma - Wl
+   S = Suma / 100
+   Asuma = S * 100
+   Suma = Suma - Asuma
+   D = Suma / 10
+   Asuma = D * 10
+   Suma = Suma - Asuma
+   J = Suma
+   Kont:
+   LDI flag, 0
+   Suma = 0
+   Print "po obliczeniach: " ; S ; D ; J
+   Writeeeprom J , 30
+   Writeeeprom D , 31
+   Writeeeprom S , 32
+   Ret
+
+!mniejsze:
+ '  Print "mniejsze"
+    Suma = 0
+    S = 0
+    D = 0
+    J = 0
+    RJMP Kont
+
+!wieksze:
+   Print "wieksze"
+   S = 1
+   D = 0
+   J = 0
+   Suma = 0
+   RJMP Kont
+
 
 Oblicz_adc:
    push rstemp                                              'o ile potrzeba - sprawdziæ
@@ -131,7 +200,7 @@ Oblicz_adc:
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
- '  !cli
+   !cli
 
 
    INC Count
@@ -140,12 +209,14 @@ Oblicz_adc:
    !czekaj_adc:
    SBiC ADCSRA, 4
       RJMP czekaj_adc
-   Suma = Suma + Adc
+   Asuma = Adc / 16
+   Suma = Suma + Asuma
    cpi Count,16
-      brEQ obliczenia
+   sbic sreg,1
+      rcall jest
 
 
- '  sei
+   sei
    pop r0
    pop r1
    pop yh
@@ -156,59 +227,10 @@ Oblicz_adc:
    pop rstemp
 Return
 
-!obliczenia:
-   Suma = Suma / 16                                         'usrednienie
-   Suma = Suma / Wartdziel                                  '//przeskalowanie
-
-
-
-   Tempbyte = Suma
-   LDS rstemp, {Tempbyte}
-   Tempbyte = Wl
-   LDS rsdata, {Tempbyte}
-   !SUB rstemp, rsdata
-   SBIC SREG, 2
-      RJMP mniejsze
-
-
-
-
-   Tempbyte = Suma
-   LDS rstemp, {Tempbyte}
-   Tempbyte = Wh
-   LDS rsdata ,{Tempbyte}
-   !SUB rsdata, rstemp
-   SBIC SREG, 2
-       RJMP wieksze
-
-   Suma = Suma - Wl
-
-   Kont:
-
-
-   S = Suma / 100
-   Asuma = S * 100
-   Suma = Suma - Asuma
-
-   D = Suma / 10
-   Asuma = D * 10
-   Suma = Suma - Asuma
-
-   J = Suma
-   CLR Count
-   Suma = 0
-   Print "po obliczeniach: " ; S ; D ; J
-   Writeeeprom J , 30
-   Writeeeprom D , 31
-   Writeeeprom S , 32
-   Ret
-!mniejsze:
-    Suma = 0
-    RJMP Kont
-
-!wieksze:
-   Suma = 100
-   RJMP Kont
+!jest:
+   ldi flag,1
+   ldi count, 0
+   ret
 
 Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
    push rstemp                                              'o ile potrzeba - sprawdziæ
@@ -219,12 +241,16 @@ Usart_rx:                                                   'etykieta bascomowa 
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
+   push count
+   push flag
 
    !cli
    rcall rs_rx                                              'kod mo¿e byæ bezpoœrenio w usart_rx
    sei
 
    'odtworzenie stanu jak przed przerwanie
+   pop flag
+   pop count
    pop r0
    pop r1
    pop yh

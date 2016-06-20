@@ -32,8 +32,13 @@ Temp Alias R16
 Temph Alias R17
 Rstemp Alias R18
 Rsdata Alias R19
+'OBLICZENIA
+Jednostki Alias R26
+Dziesiatki Alias R27
+Setki Alias R28
 'LICZNIK  ile bylo konwersji
 Count Alias R25
+Flag Alias R29
 'pozosta³e aliasy
 Te_pin Alias 4
 Te Alias Portd.te_pin                                       'sterowanie przep³ywem w nadajniku/odbiorniku linii
@@ -85,6 +90,7 @@ Suma = 0
                                              'adres odbiorcy 0...15
 
 'ZMIENNE TYSIACE ITD
+Dim T As Integer
 Dim S As Integer
 Dim D As Integer
 Dim J As Integer
@@ -119,6 +125,8 @@ Sei                                                         'w³¹czenie globalnie
 
 
 Do
+   CPI flag,1
+      Rcall obliczenia
 
 Loop
 
@@ -131,7 +139,7 @@ Oblicz_adc:
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
- '  !cli
+   !cli
 
 
    INC Count
@@ -140,12 +148,13 @@ Oblicz_adc:
    !czekaj_adc:
    SBiC ADCSRA, 4
       RJMP czekaj_adc
+'   Print "ADC:" ; Adc    'KONTROLNIE
    Suma = Suma + Adc
    cpi Count,16
-      brEQ obliczenia
+      ldi Flag, 1
 
 
- '  sei
+   sei
    pop r0
    pop r1
    pop yh
@@ -157,9 +166,12 @@ Oblicz_adc:
 Return
 
 !obliczenia:
-   Suma = Suma / 16                                         'usrednienie
+'   Print "WL: " ; Wl
+'   Print "WH: " ; Wh
+   Suma = Suma / 16
    Suma = Suma / Wartdziel                                  '//przeskalowanie
 
+'   Print "SUMA po dzielenie: " ; Suma
 
 
    Tempbyte = Suma
@@ -184,7 +196,13 @@ Return
    Suma = Suma - Wl
 
    Kont:
-
+'   Print "Suma finalnie " ; Suma
+'   Suma = Suma * Prescadc
+'   Suma = Suma + Offset
+'   Print "Srednia: " ; Suma  'KONTROLNIE
+'   T = Suma / 1000
+'   Asuma = T * 1000
+'   Suma = Suma - Asuma
 
    S = Suma / 100
    Asuma = S * 100
@@ -195,22 +213,48 @@ Return
    Suma = Suma - Asuma
 
    J = Suma
+   LDS jednostki, {J}
+   LDS dziesiatki, {d}
+   LDS setki, {s}
+
+         !OUT UDR0,setki
+      RCALL czekajUDR0
+
+      !OUT UDR0,dziesiatki
+      RCALL czekajUDR0
+
+      !OUT UDR0,dziesiatki
+      RCALL czekajUDR0
+
+
+
+   'ZAPIS DO EEPROM
+ '  Writeeeprom J , 40
+ '  Writeeeprom D , 41
+ '  Writeeeprom S , 42
+
+' KONTROLNIE
+'   Print "T: " ; T
+   Print Suma
+'   RCALL wyslij                                             'NIE WYSYLAM DO KOMPUTERA!!!!!!
    CLR Count
    Suma = 0
-   Print "po obliczeniach: " ; S ; D ; J
-   Writeeeprom J , 30
-   Writeeeprom D , 31
-   Writeeeprom S , 32
+   Ldi flag, 0
    Ret
+
+
 !mniejsze:
     Suma = 0
-    RJMP Kont
+    RJMP kont
 
 !wieksze:
    Suma = 100
-   RJMP Kont
+   RJMP kont
 
-Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
+Usart_rx:
+   PUSH jednostki
+   PUSH dziesiatki
+   PUSH setki                                               'etykieta bascomowa koniecznie bez !
    push rstemp                                              'o ile potrzeba - sprawdziæ
    in rstemp,sreg                                           'o ile potrzeba  - sprawdziæ
    push rstemp                                              'o ile potrzeba - sprawdziæ
@@ -219,11 +263,9 @@ Usart_rx:                                                   'etykieta bascomowa 
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
-
    !cli
    rcall rs_rx                                              'kod mo¿e byæ bezpoœrenio w usart_rx
    sei
-
    'odtworzenie stanu jak przed przerwanie
    pop r0
    pop r1
@@ -233,7 +275,17 @@ Usart_rx:                                                   'etykieta bascomowa 
    pop rstemp
    !out sreg,rstemp
    pop rstemp
+   POP setki
+   POP dziesiatki
+   POP jednostki
 Return
+
+
+                                                '
+!czekajUDR0:
+      sbiS ucsr0a,udre0                                     'czekaj na udr0
+      rjmp czekajUDR0
+      RET
 
 !czekajUDR1:
       sbiS ucsr1a,udre1                                     'czekaj na udr1
@@ -260,10 +312,15 @@ Return
       ldi rstemp,0
       sts {Czekamnaeof},rstemp
 
- '        Print "przed nad: " ; S ; D ; J
+       'KONTROLNIE!!!
+
+ '     Readeeprom J , 40
+ '     Readeeprom D , 41
+ '     Readeeprom S , 42
+ '           Print "PRZED NADANIEM DO MASTERA: " ; S ; D ; J
 
       Te = 1
-      ldi rstemp,bofmaster_bit                              'BOF
+      ldi rstemp,bofmaster_bit
       !out udr1,rstemp
 
       RCALL czekajUDR1                                      'ZNAK U
@@ -278,31 +335,33 @@ Return
       LDI rstemp, znakrowne
       !out udr1, rstemp
 
-      Readeeprom S , 32
       RCALL czekajUDR1
-      LDS rstemp, {S}
-      subi rstemp, -48                                      'Setki
-      !OUT UDR1, rstemp
+'      LDS rstemp, {T}
+'      subi rstemp, -48                                      'TYSIACE
+'      !OUT UDR1, rstemp
 
-
-      Readeeprom D , 31
       RCALL czekajUDR1
-      LDS rstemp, {D}
-      subi rstemp, -48                                      'dziesiatki
-      !OUT UDR1, rstemp
+      'LDS rstemp, {S}
+      subi setki, -48                                       'Setki
+      !OUT UDR1, setki
 
-
-      Readeeprom J , 30
       RCALL czekajUDR1
-      LDS rstemp, {J}
-      subi rstemp, -48                                      'jednosci
-      !OUT UDR1, rstemp
+      'LDS rstemp, {D}
+      subi dziesiatki, -48                                  'dziesiatki
+      !OUT UDR1, dziesiatki
+
+
+      RCALL czekajUDR1
+ '     LDS rstemp, {J}
+      subi jednostki, -48                                   'jednosci
+      !OUT UDR1, jednostki
 
       RCALL czekajUDR1                                      'ZNAK m
       LDI rstemp, znakm
       !out udr1, rstemp
 
       RCALL czekajUDR1                                      'ZNAK m
+      LDI rstemp, znakm
       !out udr1, rstemp
 
       ldi rstemp,eofs_bit
@@ -311,7 +370,10 @@ Return
       RCALL czekajUDR1
 
       Te = 0
-
+      STS {s}, setki
+      STS {d}, dziesiatki
+      STS {j}, jednostki
+      Print S ; D ; J
 
             'KONTROLNIE
    ret

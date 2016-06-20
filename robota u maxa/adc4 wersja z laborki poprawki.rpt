@@ -1,6 +1,6 @@
-Report       : adc4 wywalam niepotrzebne
+Report       : adc4 wersja z laborki poprawki
 Date         : 06-20-2016
-Time         : 16:22:46
+Time         : 17:49:56
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,9 +8,9 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : 730 hex  -> Will fit into ROM
-ROMIMAGE     :  1840 dec
-FLASH USED   :  2  %
+ROMIMAGE     : 8F6 hex  -> Will fit into ROM
+ROMIMAGE     :  2294 dec
+FLASH USED   :  3  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz
 BAUD error   : 0.%
@@ -21,7 +21,7 @@ S-Stacksize  : 10 hex
 S-Stackstart : 10D8 hex
 Framesize    : 20 hex
 Framestart   : 10A8 hex
-Space left   :  3985  dec
+Space left   :  3986  dec
 
 LCD DB7      : PORTB.7
 LCD DB6      : PORTB.6
@@ -67,16 +67,16 @@ PWM2B                            Byte              00B4          180
 ERR                              Bit               0006          6 
 PRESCADC                         Word              0100          256 
 OFFSET                           Word              0102          258 
-WL                               Integer           0104          260 
-WH                               Integer           0106          262 
-WARTDZIEL                        Integer           0108          264 
+WL                               Word              0104          260 
+WH                               Word              0106          262 
+WARTDZIEL                        Word              0108          264 
 TEMPBYTE                         Byte              010A          266 
-SUMA                             Word              010B          267 
-S                                Integer           010D          269 
-D                                Integer           010F          271 
-J                                Integer           0111          273 
-ASUMA                            Integer           0113          275 
-CZEKAMNAEOF                      Byte              0115          277 
+SUMA                             Long              010B          267 
+S                                Byte              010F          271 
+D                                Byte              0110          272 
+J                                Byte              0111          273 
+ASUMA                            Word              0112          274 
+CZEKAMNAEOF                      Byte              0114          276 
 
 --------------------------------------------------------------------------------
 Constant                         Value

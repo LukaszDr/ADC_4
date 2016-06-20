@@ -64,9 +64,9 @@ Offset = 0
 
 
 'WL i WH
-Dim Wl As Integer
-Dim Wh As Integer
-Dim Wartdziel As Integer
+Dim Wl As Word
+Dim Wh As Word
+Dim Wartdziel As Word
 Dim Tempbyte As Byte
 
 Wl = 200
@@ -78,17 +78,17 @@ Wh = Wh / Wartdziel
 
 
 'SUMA - do niej zliczam kolejne odczyty
-Dim Suma As Word
+Dim Suma As Long
 Suma = 0
 
 'Adrw = 1    niepotrzebne
                                              'adres odbiorcy 0...15
 
 'ZMIENNE TYSIACE ITD
-Dim S As Integer
-Dim D As Integer
-Dim J As Integer
-Dim Asuma As Integer
+Dim S As Byte
+Dim D As Byte
+Dim J As Byte
+Dim Asuma As Word
 
 'CZY PRZYSZLO BOF
 Dim Czekamnaeof As Byte
@@ -131,7 +131,7 @@ Oblicz_adc:
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
- '  !cli
+   !cli
 
 
    INC Count
@@ -140,12 +140,13 @@ Oblicz_adc:
    !czekaj_adc:
    SBiC ADCSRA, 4
       RJMP czekaj_adc
-   Suma = Suma + Adc
+   Asuma = Adc / 16
+   Suma = Suma + Asuma
    cpi Count,16
       brEQ obliczenia
 
 
- '  sei
+   sei
    pop r0
    pop r1
    pop yh
@@ -157,20 +158,17 @@ Oblicz_adc:
 Return
 
 !obliczenia:
-   Suma = Suma / 16                                         'usrednienie
+'   Print "Przed wszystkim:" ; Suma
+'   Suma = Suma / 16                                         'usrednienie
+   Print "Na poczatku: " ; Suma
    Suma = Suma / Wartdziel                                  '//przeskalowanie
-
-
-
+   Print "po wartdziel: " ; Suma
    Tempbyte = Suma
    LDS rstemp, {Tempbyte}
-   Tempbyte = Wl
-   LDS rsdata, {Tempbyte}
-   !SUB rstemp, rsdata
+   !SUBi rstemp, 33
+'   BRLO mniejsze
    SBIC SREG, 2
       RJMP mniejsze
-
-
 
 
    Tempbyte = Suma
@@ -178,23 +176,20 @@ Return
    Tempbyte = Wh
    LDS rsdata ,{Tempbyte}
    !SUB rsdata, rstemp
+'   BRLO wieksze
    SBIC SREG, 2
        RJMP wieksze
 
+
    Suma = Suma - Wl
-
-   Kont:
-
-
    S = Suma / 100
    Asuma = S * 100
    Suma = Suma - Asuma
-
    D = Suma / 10
    Asuma = D * 10
    Suma = Suma - Asuma
-
    J = Suma
+   Kont:
    CLR Count
    Suma = 0
    Print "po obliczeniach: " ; S ; D ; J
@@ -202,12 +197,21 @@ Return
    Writeeeprom D , 31
    Writeeeprom S , 32
    Ret
+
 !mniejsze:
+   Print "mniejsze"
     Suma = 0
+    S = 0
+    D = 0
+    J = 0
     RJMP Kont
 
 !wieksze:
-   Suma = 100
+   Print "wieksze"
+   S = 1
+   D = 0
+   J = 0
+   Suma = 0
    RJMP Kont
 
 Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
@@ -219,12 +223,14 @@ Usart_rx:                                                   'etykieta bascomowa 
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
+   push count
 
    !cli
    rcall rs_rx                                              'kod mo¿e byæ bezpoœrenio w usart_rx
    sei
 
    'odtworzenie stanu jak przed przerwanie
+   pop count
    pop r0
    pop r1
    pop yh

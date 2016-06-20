@@ -197,7 +197,7 @@ Return
    J = Suma
    CLR Count
    Suma = 0
-   Print "po obliczeniach: " ; S ; D ; J
+'   Print "po obliczeniach: " ; S ; D ; J
    Writeeeprom J , 30
    Writeeeprom D , 31
    Writeeeprom S , 32
@@ -285,7 +285,7 @@ Return
       !OUT UDR1, rstemp
 
 
-      Readeeprom D , 31
+      readeeprom D, 31
       RCALL czekajUDR1
       LDS rstemp, {D}
       subi rstemp, -48                                      'dziesiatki
