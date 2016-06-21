@@ -1,6 +1,6 @@
-Report       : adc4 wersja z laborki dodaje flage
+Report       : adc4 wersja z laborki nowa zmienna suma
 Date         : 06-21-2016
-Time         : 16:07:04
+Time         : 15:46:17
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,8 +8,8 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : 912 hex  -> Will fit into ROM
-ROMIMAGE     :  2322 dec
+ROMIMAGE     : 8BE hex  -> Will fit into ROM
+ROMIMAGE     :  2238 dec
 FLASH USED   :  3  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz
@@ -21,7 +21,7 @@ S-Stacksize  : 10 hex
 S-Stackstart : 10D8 hex
 Framesize    : 20 hex
 Framestart   : 10A8 hex
-Space left   :  3982  dec
+Space left   :  3980  dec
 
 LCD DB7      : PORTB.7
 LCD DB6      : PORTB.6
@@ -76,7 +76,8 @@ S                                Byte              0113          275
 D                                Byte              0114          276 
 J                                Byte              0115          277 
 ASUMA                            Word              0116          278 
-CZEKAMNAEOF                      Byte              0118          280 
+WYNIK                            Word              0118          280 
+CZEKAMNAEOF                      Byte              011A          282 
 
 --------------------------------------------------------------------------------
 Constant                         Value
@@ -870,7 +871,7 @@ _UBRR0                            7
 BAUNDRS1                         115200
 _UBRR1                            7
 BOF_BIT                          &B11000000
-BOFM_BIT                         &B11000001
+BOFM_BIT                         &B10000001
 BOFMASTER_BIT                    &B11000010
 BOFS_BIT                         &B11000001
 EOFS_BIT                         &B10000001
@@ -899,4 +900,5 @@ PWM0A                            not used
 PWM0B                            not used
 PWM2A                            not used
 PWM2B                            not used
+TEMPBYTE                         not used
 

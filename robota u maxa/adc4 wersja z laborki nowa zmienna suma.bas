@@ -90,6 +90,7 @@ Dim S As Byte
 Dim D As Byte
 Dim J As Byte
 Dim Asuma As Word
+Dim Wynik As Word
 
 'CZY PRZYSZLO BOF
 Dim Czekamnaeof As Byte
@@ -99,7 +100,7 @@ Czekamnaeof = 0
 ''RAMKI
 
 Const Bof_bit = &B11000000
-Const Bofm_bit = &B11000001
+Const Bofm_bit = &B10000001
 Const Bofmaster_bit = &B11000010
 Const Bofs_bit = &B11000001
 
@@ -130,12 +131,12 @@ Loop
 '   Print "Przed wszystkim:" ; Suma
 '   Suma = Suma / 16                                         'usrednienie
 '   Print "Na poczatku: " ; Suma
-   Suma = Suma / Wartdziel                                  '//przeskalowanie
+   Wynik = Wynik / Wartdziel                                '//przeskalowanie
    Print "po wartdziel: " ; Suma
 
 
 '   Tempbyte = Suma
-   LDS rstemp, {Suma}
+   LDS rstemp, {Wynik}
 '   Tempbyte = Wh
    LDS rsdata ,{Wh}
    !SUB rstemp, rsdata
@@ -145,9 +146,9 @@ Loop
 
 
 
-   Tempbyte = Suma
-   LDS rstemp, {Suma}
-   Tempbyte = Wl
+'   Tempbyte = Suma
+   LDS rstemp, {Wynik}
+'   Tempbyte = Wl
    LDS rsdata ,{Wl}
    !SUB rstemp, rsdata
 '   BRLO mniejsze
@@ -157,14 +158,14 @@ Loop
 
 
 
-   Suma = Suma - Wl
-   S = Suma / 100
+   Wynik = Wynik - Wl
+   S = Wynik / 100
    Asuma = S * 100
-   Suma = Suma - Asuma
-   D = Suma / 10
+   Wynik = Wynik - Asuma
+   D = Wynik / 10
    Asuma = D * 10
-   Suma = Suma - Asuma
-   J = Suma
+   Wynik = Wynik - Asuma
+   J = Wynik
    Kont:
    LDI flag, 0
    Suma = 0
@@ -176,7 +177,7 @@ Loop
 
 !mniejsze:
  '  Print "mniejsze"
-    Suma = 0
+    Wynik = 0
     S = 0
     D = 0
     J = 0
@@ -187,7 +188,7 @@ Loop
    S = 1
    D = 0
    J = 0
-   Suma = 0
+   Wynik = 0
    RJMP Kont
 
 
@@ -228,6 +229,8 @@ Oblicz_adc:
 Return
 
 !jest:
+   Wynik = Suma
+   Suma = 0
    ldi flag,1
    ldi count, 0
    ret
@@ -308,20 +311,14 @@ Return
       RCALL czekajUDR1
       LDS rstemp, {S}
       subi rstemp, -48                                      'Setki
-      CPI rstemp,48
-      SBIC SREG,1
-         ldi rstemp, 32
       !OUT UDR1, rstemp
 
 
       Readeeprom D , 31
       RCALL czekajUDR1
-      LDS rsdata, {D}
-      subi rsdata, -48                                      'dziesiatki
-      CPI rstemp,32
-      SBIC SREG,1
-         RCALL setki0
-      !OUT UDR1, rsdata
+      LDS rstemp, {D}
+      subi rstemp, -48                                      'dziesiatki
+      !OUT UDR1, rstemp
 
 
       Readeeprom J , 30
@@ -342,7 +339,7 @@ Return
 
       RCALL czekajUDR1
 
-      'Te = 0
+      Te = 0
 
 
             'KONTROLNIE
@@ -356,11 +353,7 @@ Usart_tx_end:                                               'przerwanie wyst¹pi 
    'to samo co CBI PORTD,TE_pin, brak zmian w SREG
 Return
 
-!setki0:
-      CPI rsdata,48
-      SBIC SREG,1
-         ldi rsdata, 32
-      ret
+
 
 !usart_init:
 'procedura inicjalizacji USARTów
