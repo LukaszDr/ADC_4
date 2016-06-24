@@ -26,9 +26,9 @@ $regfile = "m644pdef.dat"                                   'plik konfiguracyjny
 $crystal = Fcrystal
 '$baud = Baundrs0    'zbêdne gdy inicjalizacja w zdefiniowanej procedurze
 
-$eeprom
+'$eeprom
 'WLsetki, WLjednostki, WHsetki, WHjednostki, Offset setki, Offset jednostki
-Data 2 , 0 , 8 , 0 , 0 , 50
+'Data 0 , 0 , 10 , 8 , 0 , 0
 
 $data
 
@@ -37,12 +37,18 @@ Temp Alias R16
 Temph Alias R17
 Rstemp Alias R18
 Rsdata Alias R19
+
+Wniski Alias R20
+Wwysoki Alias R21
+Wynikl Alias R23
+Wynikh Alias R23
 'LICZNIK  ile bylo konwersji
 Count Alias R25
-Flag Alias R26
-'pozosta³e aliasy
 Te_pin Alias 4
-Te Alias Portd.te_pin                                       'sterowanie przep³ywem w nadajniku/odbiorniku linii
+Te Alias Portd.te_pin
+
+
+                                               'sterowanie przep³ywem w nadajniku/odbiorniku linii
 
 'Config ADC
 Config Adc = Single , Prescaler = Auto , Reference = Avcc
@@ -51,7 +57,7 @@ Config Adc = Single , Prescaler = Auto , Reference = Avcc
 Config Timer1 = Timer , Prescale = 64 , Compare A = Disconnect , Clear Timer = 1
 Stop Timer1
 Timer1 = 0                                                  'wARTOSC POCZ, RACZEJ NIEPOTRZEBNE
-Ocr1a = 14400                                               'WARTOSC DO ZLICZENIA
+Ocr1a = 14399                                               'WARTOSC DO ZLICZENIA
 
 On Oc1a Oblicz_adc Nosave                                   'wlaczenie przerwania timera
 Enable Oc1a
@@ -61,53 +67,8 @@ Start Timer1
 On Urxc1 Usart_rx Nosave                                    'deklaracja przerwania URXC (odbiór znaku USART)
 On Utxc1 Usart_tx_end Nosave                                'deklaracja przerwania UTXC, koniec nadawania
 
-'UStawienia obrabiania danych
-'Dim Prescadc As Word
-Dim Offset As Long
-
-'WL i WH
-Dim Wl As Long
-Dim Wh As Long
-Dim Wartdziel As Word
 Dim Tempbyte As Byte
 
-''Odczyt Wh, Wl i offset z eeprom
-
-Readeeprom Tempbyte , 0
-Wl = Tempbyte * 100
-Readeeprom Tempbyte , 1
-Wl = Wl + Tempbyte
-Readeeprom Tempbyte , 2
-Wh = Tempbyte * 100
-Readeeprom Tempbyte , 3
-Wh = Wh + Tempbyte
-Readeeprom Tempbyte , 4
-Offset = Tempbyte * 100
-Readeeprom Tempbyte , 5
-Offset = Offset + Tempbyte
-
-'Print "Wartosci: !!!!!!!!!!!!!!!!!!" ; Wh ; Wl ; Offset
-
-Wartdziel = Wh - Wl
-Wartdziel = Wartdziel / 100
-Wl = Wl / Wartdziel
-Wh = Wh / Wartdziel
-
-
-'SUMA - do niej zliczam kolejne odczyty
-Dim Suma As Long
-Dim Wynik As Long
-Suma = 0
-Wynik = 0
-
-'Adrw = 1    niepotrzebne
-                                             'adres odbiorcy 0...15
-
-'ZMIENNE TYSIACE ITD
-Dim S As Byte
-Dim D As Byte
-Dim J As Byte
-Dim Asuma As Word
 
 'CZY PRZYSZLO BOF
 Dim Czekamnaeof As Byte
@@ -134,86 +95,23 @@ Const Znakm = &B01101101
 
 
 rcall usart_init                                            'inicjalizacja USARTów i w³¹czenie przerwañ
-Sei                                                         'w³¹czenie globalnie przerwañ
 
+
+Print "Tutaj"
+clr wniski
+clr wwysoki
+clr count
+
+
+
+Sei                                                         'w
 
 Do
-   cpi flag,1
-   sbic sreg,1
-      rcall obliczenia
 Loop
-
-!obliczenia:
-'   Print "Przed wszystkim:" ; Suma
-'   Suma = Suma / 16                                         'usrednienie
-'   Print "Na poczatku: " ; Suma
-   If Wynik < Offset Then
-      Wynik = 0
-   Else
-      Wynik = Wynik - Offset
-      Wynik = Wynik / Wartdziel                             '//przeskalowanie
-   End If
- '  Print "po wartdziel: " ; Wynik
-
-
-'   Tempbyte = Suma
-   LDS rstemp, {Wynik}
-'   Tempbyte = Wh
-   LDS rsdata ,{Wh}
-   !SUB rstemp, rsdata
-   'BRLO wieksze
-   SBIS SREG, 0
-       RJMP wieksze
-
-
-
- '  Tempbyte = Suma
-   LDS rstemp, {Wynik}
-'   Tempbyte = Wl
-   LDS rsdata ,{Wl}
-   !SUB rstemp, rsdata
-'   BRLO mniejsze
-   SBIC SREG, 2
-      RJMP mniejsze
-
-
-
-
-   Wynik = Wynik - Wl
-   S = Wynik / 100
-   Asuma = S * 100
-   Wynik = Wynik - Asuma
-   D = Wynik / 10
-   Asuma = D * 10
-   Wynik = Wynik - Asuma
-   J = Wynik
-   Kont:
-   LDI flag, 0
-   Wynik = 0
-   Print "po obliczeniach: " ; S ; D ; J
-   Writeeeprom J , 30
-   Writeeeprom D , 31
-   Writeeeprom S , 32
-   Ret
-
-!mniejsze:
- '  Print "mniejsze"
- '   Wynik = 0
-    S = 0
-    D = 0
-    J = 0
-    RJMP Kont
-
-!wieksze:
-'   Print "wieksze"
-   S = 1
-   D = 0
-   J = 0
-'   Wynik = 0
-   RJMP Kont
 
 
 Oblicz_adc:
+
    push rstemp                                              'o ile potrzeba - sprawdziæ
    in rstemp,sreg                                           'o ile potrzeba  - sprawdziæ
    push rstemp                                              'o ile potrzeba - sprawdziæ
@@ -222,20 +120,29 @@ Oblicz_adc:
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
-   !cli
 
 
-   INC Count
+   inc Count
+
+
 
    SBI adcsra,6
    !czekaj_adc:
    SBiC ADCSRA, 4
       RJMP czekaj_adc
-   Asuma = Adc / 16
-   Suma = Suma + Asuma
+
+   in rstemp, adcl
+   add wniski, rstemp
+   sbic sreg,0
+      SUBI wwysoki, -1
+
+
+   in rstemp, adch
+   add Wwysoki, rstemp
+
    cpi Count,16
    sbic sreg,1
-      rcall jest
+      rcall skaluj
 
 
    sei
@@ -249,11 +156,53 @@ Oblicz_adc:
    pop rstemp
 Return
 
-!jest:
-   Wynik = Suma
-   Suma = 0
-   ldi flag,1
-   ldi count, 0
+!skaluj:
+
+   !out UDR0, wwysoki
+   'usrednianie
+   rcall podziell
+   RCALL podzielh
+
+
+
+
+   'mnozenie przez 250  i dzieleni prez 256
+   LDI rstemp,250
+   mul Wniski,rstemp
+   mov Wniski,R1
+   MUL Wwysoki,rstemp
+   mov Wwysoki, R1
+   ADD wniski, R0
+   SBIC sreg,0
+      subi wwysoki,-1
+
+
+
+   ldi wwysoki,0
+   ldi wniski,0
+   ldi Count, 0
+   ret
+
+Podziell:
+   lsr Wniski
+   lsr Wniski
+   LSR Wniski
+   LSR Wniski
+   ret
+
+Podzielh:
+   LSR Wwysoki
+   SBIC SREG,0
+      inc Wniski
+   LSR Wwysoki
+   SBIC SREG,0
+      inc Wniski
+   LSR Wwysoki
+   SBIC SREG,0
+      inc Wniski
+   LSR Wwysoki
+   SBIC SREG,0
+      inc Wniski
    ret
 
 Usart_rx:                                                   'etykieta bascomowa koniecznie bez !
@@ -266,14 +215,16 @@ Usart_rx:                                                   'etykieta bascomowa 
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
    push count
-   push flag
+   push wwysoki
+   push wniski
 
    !cli
    rcall rs_rx                                              'kod mo¿e byæ bezpoœrenio w usart_rx
    sei
 
    'odtworzenie stanu jak przed przerwanie
-   pop flag
+   pop wniski
+   pop wwysoki
    pop count
    pop r0
    pop r1
@@ -285,10 +236,31 @@ Usart_rx:                                                   'etykieta bascomowa 
    pop rstemp
 Return
 
-!czekajUDR1:
-      sbiS ucsr1a,udre1                                     'czekaj na udr1
-      rjmp czekajUDR1
-      RET
+
+!usart_init:
+'procedura inicjalizacji USARTów
+   ldi temp,0
+   !out ubrr0h,temp                                         'bardziej znacz¹cy bajt UBRR USART0
+   !out ubrr1h,temp
+   ldi temp,_ubrr0
+   !out ubrr0l,temp                                         'mniej znacz¹cy bajt UBRR USART0
+   ldi temp,_ubrr1
+   !out ubrr1l,temp                                         'mniej znacz¹cy bajt UBRR USART1
+   ldi temp,24                                              'w³¹czone odbiorniki i nadajniki USARTów
+   !out ucsr0b,temp
+   !out ucsr1b,temp
+   ldi temp,6                                               'N8bit
+   !out ucsr0C,temp
+   !out ucsr1C,temp
+   'ustawienia RS485
+   Te = 0                                                   'domyœlnie stan odbioru
+   sbi ddrd,Te_pin                                          'wyjœcie TE silnopr¹dowe
+   'w³¹czenie przerwañ
+   Enable Urxc
+   Enable Urxc1
+   Enable Utxc1
+ret
+
 
 !rs_rx:
    in rsdata,udr1
@@ -316,50 +288,7 @@ Return
       ldi rstemp,bofmaster_bit                              'BOF
       !out udr1,rstemp
 
-      RCALL czekajUDR1                                      'ZNAK U
-      LDI rstemp, znaku
-      !out udr1, rstemp
 
-      RCALL czekajUDR1                                      'ZNAK A
-      LDI rstemp, znaka
-      !out udr1, rstemp
-
-      RCALL czekajUDR1                                      'ZNAK =
-      LDI rstemp, znakrowne
-      !out udr1, rstemp
-
-      Readeeprom S , 32
-      RCALL czekajUDR1
-      LDS rstemp, {S}
-      subi rstemp, -48                                      'Setki
-      CPI rstemp,48
-      SBIC SREG,1
-         ldi rstemp, 32
-      !OUT UDR1, rstemp
-
-
-      Readeeprom D , 31
-      RCALL czekajUDR1
-      LDS rsdata, {D}
-      subi rsdata, -48                                      'dziesiatki
-      CPI rstemp,32
-      SBIC SREG,1
-         RCALL setki0
-      !OUT UDR1, rsdata
-
-
-      Readeeprom J , 30
-      RCALL czekajUDR1
-      LDS rstemp, {J}
-      subi rstemp, -48                                      'jednosci
-      !OUT UDR1, rstemp
-
-      RCALL czekajUDR1                                      'ZNAK m
-      LDI rstemp, znakm
-      !out udr1, rstemp
-
-      RCALL czekajUDR1                                      'ZNAK m
-      !out udr1, rstemp
 
       ldi rstemp,eofs_bit
       !out udr1,rstemp
@@ -373,39 +302,14 @@ Return
    ret
 
 
+!czekajUDR1:
+      sbiS ucsr1a,udre1                                     'czekaj na udr1
+      rjmp czekajUDR1
+      RET
+
 
 
 Usart_tx_end:                                               'przerwanie wyst¹pi gdy USART wyœle znak i UDR bêdzie pusty
    Te = 0                                                   'wy³¹czenie nadajnika, w³¹czenie odbiornika
    'to samo co CBI PORTD,TE_pin, brak zmian w SREG
 Return
-
-!setki0:
-      CPI rsdata,48
-      SBIC SREG,1
-         ldi rsdata, 32
-      ret
-
-!usart_init:
-'procedura inicjalizacji USARTów
-   ldi temp,0
-   !out ubrr0h,temp                                         'bardziej znacz¹cy bajt UBRR USART0
-   !out ubrr1h,temp
-   ldi temp,_ubrr0
-   !out ubrr0l,temp                                         'mniej znacz¹cy bajt UBRR USART0
-   ldi temp,_ubrr1
-   !out ubrr1l,temp                                         'mniej znacz¹cy bajt UBRR USART1
-   ldi temp,24                                              'w³¹czone odbiorniki i nadajniki USARTów
-   !out ucsr0b,temp
-   !out ucsr1b,temp
-   ldi temp,6                                               'N8bit
-   !out ucsr0C,temp
-   !out ucsr1C,temp
-   'ustawienia RS485
-   Te = 0                                                   'domyœlnie stan odbioru
-   sbi ddrd,Te_pin                                          'wyjœcie TE silnopr¹dowe
-   'w³¹czenie przerwañ
-   Enable Urxc
-   Enable Urxc1
-   Enable Utxc1
-ret

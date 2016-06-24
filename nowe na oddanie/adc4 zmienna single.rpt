@@ -1,6 +1,6 @@
-Report       : adc4 wersja ostateczna
+Report       : adc4 zmienna single
 Date         : 06-23-2016
-Time         : 12:17:40
+Time         : 14:35:16
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,9 +8,9 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : A86 hex  -> Will fit into ROM
-ROMIMAGE     :  2694 dec
-FLASH USED   :  4  %
+ROMIMAGE     : D28 hex  -> Will fit into ROM
+ROMIMAGE     :  3368 dec
+FLASH USED   :  5  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz
 BAUD error   : 0.%
@@ -21,7 +21,7 @@ S-Stacksize  : 10 hex
 S-Stackstart : 10D8 hex
 Framesize    : 20 hex
 Framestart   : 10A8 hex
-Space left   :  3978  dec
+Space left   :  3971  dec
 
 LCD DB7      : PORTB.7
 LCD DB6      : PORTB.6
@@ -66,17 +66,19 @@ PWM2A                            Byte              00B3          179
 PWM2B                            Byte              00B4          180 
 ERR                              Bit               0006          6 
 OFFSET                           Long              0100          256 
-WL                               Long              0104          260 
-WH                               Long              0108          264 
-WARTDZIEL                        Word              010C          268 
-TEMPBYTE                         Byte              010E          270 
-SUMA                             Long              010F          271 
-WYNIK                            Long              0113          275 
-S                                Byte              0117          279 
-D                                Byte              0118          280 
-J                                Byte              0119          281 
-ASUMA                            Word              011A          282 
-CZEKAMNAEOF                      Byte              011C          284 
+WL                               Single            0104          260 
+WH                               Single            0108          264 
+WARTDZIEL                        Single            010C          268 
+TEMPBYTE                         Byte              0110          272 
+SUMA                             Long              0111          273 
+WYNIK                            Single            0115          277 
+T                                Byte              0119          281 
+S                                Byte              011A          282 
+D                                Byte              011B          283 
+J                                Byte              011C          284 
+ASUMA                            Word              011D          285 
+TEMPSINGLE                       Single            011F          287 
+CZEKAMNAEOF                      Byte              0123          291 
 
 --------------------------------------------------------------------------------
 Constant                         Value
@@ -899,6 +901,7 @@ PWM0A                            not used
 PWM0B                            not used
 PWM2A                            not used
 PWM2B                            not used
+TEMPSINGLE                       not used
 
 
 Eeprom binary image map

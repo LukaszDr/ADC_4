@@ -1,6 +1,6 @@
-Report       : adc4 wersja ostateczna
+Report       : adc4 zmieniam na 1000mm
 Date         : 06-23-2016
-Time         : 12:17:40
+Time         : 12:17:03
 
 Compiler     : BASCOM-AVR LIBRARY V 2.0.7.5,  DEMO Edition
 Processor    : M644P
@@ -8,8 +8,8 @@ SRAM         : 1000 hex
 EEPROM       : 800 hex
 ROMSIZE      : 10000 hex
 
-ROMIMAGE     : A86 hex  -> Will fit into ROM
-ROMIMAGE     :  2694 dec
+ROMIMAGE     : AE4 hex  -> Will fit into ROM
+ROMIMAGE     :  2788 dec
 FLASH USED   :  4  %
 BAUD         : 115200 Baud
 XTAL         : 14745600 Hz
@@ -21,7 +21,7 @@ S-Stacksize  : 10 hex
 S-Stackstart : 10D8 hex
 Framesize    : 20 hex
 Framestart   : 10A8 hex
-Space left   :  3978  dec
+Space left   :  3975  dec
 
 LCD DB7      : PORTB.7
 LCD DB6      : PORTB.6
@@ -72,11 +72,12 @@ WARTDZIEL                        Word              010C          268
 TEMPBYTE                         Byte              010E          270 
 SUMA                             Long              010F          271 
 WYNIK                            Long              0113          275 
-S                                Byte              0117          279 
-D                                Byte              0118          280 
-J                                Byte              0119          281 
-ASUMA                            Word              011A          282 
-CZEKAMNAEOF                      Byte              011C          284 
+T                                Byte              0117          279 
+S                                Byte              0118          280 
+D                                Byte              0119          281 
+J                                Byte              011A          282 
+ASUMA                            Long              011B          283 
+CZEKAMNAEOF                      Byte              011F          287 
 
 --------------------------------------------------------------------------------
 Constant                         Value

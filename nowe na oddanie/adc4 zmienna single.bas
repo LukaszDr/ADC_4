@@ -28,7 +28,7 @@ $crystal = Fcrystal
 
 $eeprom
 'WLsetki, WLjednostki, WHsetki, WHjednostki, Offset setki, Offset jednostki
-Data 2 , 0 , 8 , 0 , 0 , 50
+Data 0 , 0 , 10 , 8 , 0 , 0
 
 $data
 
@@ -51,7 +51,7 @@ Config Adc = Single , Prescaler = Auto , Reference = Avcc
 Config Timer1 = Timer , Prescale = 64 , Compare A = Disconnect , Clear Timer = 1
 Stop Timer1
 Timer1 = 0                                                  'wARTOSC POCZ, RACZEJ NIEPOTRZEBNE
-Ocr1a = 14400                                               'WARTOSC DO ZLICZENIA
+Ocr1a = 14399                                               'WARTOSC DO ZLICZENIA
 
 On Oc1a Oblicz_adc Nosave                                   'wlaczenie przerwania timera
 Enable Oc1a
@@ -66,9 +66,9 @@ On Utxc1 Usart_tx_end Nosave                                'deklaracja przerwan
 Dim Offset As Long
 
 'WL i WH
-Dim Wl As Long
-Dim Wh As Long
-Dim Wartdziel As Word
+Dim Wl As Single
+Dim Wh As Single
+Dim Wartdziel As Single
 Dim Tempbyte As Byte
 
 ''Odczyt Wh, Wl i offset z eeprom
@@ -89,14 +89,14 @@ Offset = Offset + Tempbyte
 'Print "Wartosci: !!!!!!!!!!!!!!!!!!" ; Wh ; Wl ; Offset
 
 Wartdziel = Wh - Wl
-Wartdziel = Wartdziel / 100
-Wl = Wl / Wartdziel
-Wh = Wh / Wartdziel
+'Wartdziel = Wartdziel / 1000
+'Wl = Wl / Wartdziel
+'Wh = Wh / Wartdziel
 
 
 'SUMA - do niej zliczam kolejne odczyty
 Dim Suma As Long
-Dim Wynik As Long
+Dim Wynik As Single
 Suma = 0
 Wynik = 0
 
@@ -104,10 +104,12 @@ Wynik = 0
                                              'adres odbiorcy 0...15
 
 'ZMIENNE TYSIACE ITD
+Dim T As Byte
 Dim S As Byte
 Dim D As Byte
 Dim J As Byte
 Dim Asuma As Word
+Dim Tempsingle As Single
 
 'CZY PRZYSZLO BOF
 Dim Czekamnaeof As Byte
@@ -147,70 +149,84 @@ Loop
 '   Print "Przed wszystkim:" ; Suma
 '   Suma = Suma / 16                                         'usrednienie
 '   Print "Na poczatku: " ; Suma
-   If Wynik < Offset Then
-      Wynik = 0
-   Else
-      Wynik = Wynik - Offset
-      Wynik = Wynik / Wartdziel                             '//przeskalowanie
-   End If
+'   If Wynik < Offset Then
+'      Wynik = 0
+'   Else
+'      Wynik = Wynik - Offset
+'      Wynik = Wynik / Wartdziel                             '//przeskalowanie
+'   End If
  '  Print "po wartdziel: " ; Wynik
 
 
 '   Tempbyte = Suma
-   LDS rstemp, {Wynik}
+'   LDS rstemp, {Wynik}
 '   Tempbyte = Wh
-   LDS rsdata ,{Wh}
-   !SUB rstemp, rsdata
+'   LDS rsdata ,{Wh}
+'   !SUB rstemp, rsdata
    'BRLO wieksze
-   SBIS SREG, 0
-       RJMP wieksze
+'   SBIS SREG, 0
+'       RJMP wieksze
 
 
 
  '  Tempbyte = Suma
-   LDS rstemp, {Wynik}
+ '  LDS rstemp, {Wynik}
 '   Tempbyte = Wl
-   LDS rsdata ,{Wl}
-   !SUB rstemp, rsdata
+'   LDS rsdata ,{Wl}
+'   !SUB rstemp, rsdata
 '   BRLO mniejsze
-   SBIC SREG, 2
-      RJMP mniejsze
-
-
-
-
-   Wynik = Wynik - Wl
-   S = Wynik / 100
-   Asuma = S * 100
-   Wynik = Wynik - Asuma
-   D = Wynik / 10
-   Asuma = D * 10
-   Wynik = Wynik - Asuma
-   J = Wynik
-   Kont:
+'   SBIC SREG, 2
+'      RJMP mniejsze
+'   Print "Wynik: " ; Wynik ; "Wh: " ; Wh
+   If Wynik > Wh Then
+      T = 1
+      S = 0
+      D = 0
+      J = 0
+   Else
+      T = 0
+      Wynik = Wynik - Wl
+      Wynik = Wynik * 1000
+      Wynik = Wynik / Wartdziel
+ '     Print " Po w-wl: " ; Wynik
+      Asuma = Wynik / 1000
+      T = Asuma
+      Asuma = T * 1000
+      Wynik = Wynik - Asuma
+      Asuma = Wynik / 100
+      S = Asuma
+      Asuma = S * 100
+      Wynik = Wynik - Asuma
+      D = Wynik / 10
+      Asuma = D * 10
+      Wynik = Wynik - Asuma
+      J = Wynik
+   End If
+   'Kont:
    LDI flag, 0
    Wynik = 0
-   Print "po obliczeniach: " ; S ; D ; J
+'   Print "po obliczeniach: " ; T ; S ; D ; J
    Writeeeprom J , 30
    Writeeeprom D , 31
    Writeeeprom S , 32
+   Writeeeprom T , 33
    Ret
 
-!mniejsze:
+'!mniejsze:
  '  Print "mniejsze"
  '   Wynik = 0
-    S = 0
-    D = 0
-    J = 0
-    RJMP Kont
+ '   S = 0
+  '  D = 0
+   ' J = 0
+    'RJMP Kont
 
-!wieksze:
+'!wieksze:
 '   Print "wieksze"
-   S = 1
-   D = 0
-   J = 0
+ '  S = 1
+  ' D = 0
+   'J = 0
 '   Wynik = 0
-   RJMP Kont
+   'RJMP Kont
 
 
 Oblicz_adc:
@@ -250,6 +266,7 @@ Oblicz_adc:
 Return
 
 !jest:
+   Print Suma
    Wynik = Suma
    Suma = 0
    ldi flag,1
@@ -316,25 +333,35 @@ Return
       ldi rstemp,bofmaster_bit                              'BOF
       !out udr1,rstemp
 
-      RCALL czekajUDR1                                      'ZNAK U
+     ' RCALL czekajUDR1                                      'ZNAK U
       LDI rstemp, znaku
       !out udr1, rstemp
 
-      RCALL czekajUDR1                                      'ZNAK A
       LDI rstemp, znaka
+      RCALL czekajUDR1                                      'ZNAK A
       !out udr1, rstemp
 
-      RCALL czekajUDR1                                      'ZNAK =
       LDI rstemp, znakrowne
+      RCALL czekajUDR1                                      'ZNAK =
       !out udr1, rstemp
+
+
+      Readeeprom T , 33
+      Rcall czekajUDR1
+      LDS rsdata, {T}
+      SUBI rsdata, -48
+      CPI rsdata, 48
+      SBIC SREG, 1
+         LdI rsdata, 32
+      !OUT UDR1, rsdata
 
       Readeeprom S , 32
       RCALL czekajUDR1
       LDS rstemp, {S}
       subi rstemp, -48                                      'Setki
-      CPI rstemp,48
+      CPI rsdata,32
       SBIC SREG,1
-         ldi rstemp, 32
+         RCALL tysiace0
       !OUT UDR1, rstemp
 
 
@@ -345,6 +372,7 @@ Return
       CPI rstemp,32
       SBIC SREG,1
          RCALL setki0
+      Te = 1
       !OUT UDR1, rsdata
 
 
@@ -385,6 +413,13 @@ Return
       SBIC SREG,1
          ldi rsdata, 32
       ret
+
+
+!tysiace0:
+   CPI rstemp, 48
+   SBIC SREG, 1
+      LDI rstemp, 32
+   RET
 
 !usart_init:
 'procedura inicjalizacji USARTów

@@ -28,7 +28,7 @@ $crystal = Fcrystal
 
 $eeprom
 'WLsetki, WLjednostki, WHsetki, WHjednostki, Offset setki, Offset jednostki
-Data 2 , 0 , 8 , 0 , 0 , 50
+Data 0 , 0 , 9 , 99 , 0 , 0
 
 $data
 
@@ -39,6 +39,7 @@ Rstemp Alias R18
 Rsdata Alias R19
 'LICZNIK  ile bylo konwersji
 Count Alias R25
+LDI Count,0
 Flag Alias R26
 'pozosta³e aliasy
 Te_pin Alias 4
@@ -89,7 +90,7 @@ Offset = Offset + Tempbyte
 'Print "Wartosci: !!!!!!!!!!!!!!!!!!" ; Wh ; Wl ; Offset
 
 Wartdziel = Wh - Wl
-Wartdziel = Wartdziel / 100
+Wartdziel = Wartdziel / 1000
 Wl = Wl / Wartdziel
 Wh = Wh / Wartdziel
 
@@ -104,10 +105,11 @@ Wynik = 0
                                              'adres odbiorcy 0...15
 
 'ZMIENNE TYSIACE ITD
+Dim T As Byte
 Dim S As Byte
 Dim D As Byte
 Dim J As Byte
-Dim Asuma As Word
+Dim Asuma As Long
 
 'CZY PRZYSZLO BOF
 Dim Czekamnaeof As Byte
@@ -147,53 +149,61 @@ Loop
 '   Print "Przed wszystkim:" ; Suma
 '   Suma = Suma / 16                                         'usrednienie
 '   Print "Na poczatku: " ; Suma
-   If Wynik < Offset Then
-      Wynik = 0
-   Else
-      Wynik = Wynik - Offset
+      Print "Suma: " ; Wynik
+ '  If Wynik < Offset Then
+  '    Wynik = 0
+   'Else
+    '  Wynik = Wynik - Offset
       Wynik = Wynik / Wartdziel                             '//przeskalowanie
-   End If
+  ' End If
  '  Print "po wartdziel: " ; Wynik
 
-
+    Print "Wynik po dzieleniu: " ; Wynik
 '   Tempbyte = Suma
-   LDS rstemp, {Wynik}
-'   Tempbyte = Wh
-   LDS rsdata ,{Wh}
-   !SUB rstemp, rsdata
+'   LDS rstemp, {Wynik}
+''   Tempbyte = Wh
+'   LDS rsdata ,{Wh}
+'   !SUB rstemp, rsdata
    'BRLO wieksze
-   SBIS SREG, 0
-       RJMP wieksze
+'   SBIS SREG, 0
+   If Wynik > Wh Then
+      T = 1
+      S = 0
+      D = 0
+      J = 0
 
 
 
  '  Tempbyte = Suma
-   LDS rstemp, {Wynik}
+ '  LDS rstemp, {Wynik}
 '   Tempbyte = Wl
-   LDS rsdata ,{Wl}
-   !SUB rstemp, rsdata
+'   LDS rsdata ,{Wl}
+'   !SUB rstemp, rsdata
 '   BRLO mniejsze
-   SBIC SREG, 2
-      RJMP mniejsze
+'   SBIC SREG, 2
+'      RJMP mniejsze
 
 
 
-
-   Wynik = Wynik - Wl
-   S = Wynik / 100
-   Asuma = S * 100
-   Wynik = Wynik - Asuma
-   D = Wynik / 10
-   Asuma = D * 10
-   Wynik = Wynik - Asuma
-   J = Wynik
+   Else
+      Wynik = Wynik - Wl
+      T = 0
+      S = Wynik / 100
+      Asuma = S * 100
+      Wynik = Wynik - Asuma
+      D = Wynik / 10
+      Asuma = D * 10
+      Wynik = Wynik - Asuma
+      J = Wynik
+   End If
    Kont:
    LDI flag, 0
    Wynik = 0
-   Print "po obliczeniach: " ; S ; D ; J
+   Print "po obliczeniach: " ; T ; S ; D ; J
    Writeeeprom J , 30
    Writeeeprom D , 31
    Writeeeprom S , 32
+   Writeeeprom T , 33
    Ret
 
 !mniejsze:
@@ -206,7 +216,8 @@ Loop
 
 !wieksze:
 '   Print "wieksze"
-   S = 1
+   T = 1
+   S = 0
    D = 0
    J = 0
 '   Wynik = 0
@@ -237,7 +248,6 @@ Oblicz_adc:
    sbic sreg,1
       rcall jest
 
-
    sei
    pop r0
    pop r1
@@ -250,6 +260,7 @@ Oblicz_adc:
 Return
 
 !jest:
+   Print Wynik
    Wynik = Suma
    Suma = 0
    ldi flag,1
