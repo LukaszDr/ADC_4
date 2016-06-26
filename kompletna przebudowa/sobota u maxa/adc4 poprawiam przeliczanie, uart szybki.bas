@@ -305,7 +305,7 @@ Return
       !out udr1, rstemp
 
 
- 'ODKOMENTOWAC, TYLKO DO TESTU     'RCALL dziesietnyh
+      RCALL dziesietnyh
 
       subi tysiace, -48
       subi setki,-48

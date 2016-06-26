@@ -33,21 +33,21 @@ $crystal = Fcrystal
 $data
 
 'aliasy rejestrów procesora
-Temp Alias R16
-Temph Alias R17
-Rstemp Alias R18
-Rsdata Alias R19
+'Temp Alias R16
+'Temph Alias R17
+Rstemp Alias R16
+Rsdata Alias R17
 
-Wniski Alias R21
-Wwysoki Alias R22
-Wynikl Alias R31
-Wynikh Alias R24
-Tysiace Alias R25
+Wniski Alias R18
+Wwysoki Alias R19
+Wynikl Alias R20
+Wynikh Alias R21
+Tysiace Alias R25                                           'jak wniski, bo nie jest uzywany w adc
 Setki Alias R26
-Dziesiatki Alias R27
-Jednostki Alias R28
+Dziesiatki Alias R22
+Jednostki Alias R23
 'LICZNIK  ile bylo konwersji
-Count Alias R30
+Count Alias R24
 Te_pin Alias 4
 Te Alias Portd.te_pin
 
@@ -268,11 +268,6 @@ Return
       ldi rstemp,0
       sts {Czekamnaeof},rstemp
 
- '  push wynikl
- '     sts {tempbyte}, wynikl
- '     Print "uart l: " ; Tempbyte
- '  pop wynikl
-
 
       Te = 1
 
@@ -288,24 +283,35 @@ Return
       ldi jednostki, 0
 
       rcall liczsetki
-      subi wynikl, -100
 
+
+            ' DO USUNIECIA< KONTROLNIE
+      push wynikl
+      sts {tempbyte}, wynikl
+      Print Tempbyte
+      pop wynikl
+
+      ' DO USUNIECIA< KONTROLNIE
+      'push wynikl
+      'sts {tempbyte}, wynikl
+      'Print Tempbyte
+      'pop wynikl
 
       LDI rstemp, znaka
       RCALL czekajUDR1                                      'ZNAK A
       !out udr1, rstemp
 
-      RCALL liczdziesiatki
+  '    RCALL liczdziesiatki
       subi wynikl, -10
 
-      rcall liczjednostki
+  '    rcall liczjednostki
 
       LDI rstemp, znakrowne
       RCALL czekajUDR1                                      'ZNAK =
       !out udr1, rstemp
 
 
- 'ODKOMENTOWAC, TYLKO DO TESTU     'RCALL dziesietnyh
+  '    RCALL dziesietnyh
 
       subi tysiace, -48
       subi setki,-48
@@ -347,15 +353,12 @@ Return
       ret
 
 !liczsetki:
-   subi wynikl, 100
-   SBIC sreg,2
-      ret
-   ldi setki,1
+   inc setki
    subi wynikl,100
-   sbic sreg,2
-      Ret
-   ldi setki,2
-   subi wynikl,100
+   sbis sreg,2
+      rjmp liczsetki
+   dec setki
+   subi wynikl, -100
    ret
 
 
@@ -443,19 +446,19 @@ Return
 
 !usart_init:
 'procedura inicjalizacji USARTów
-   ldi temp,0
-   !out ubrr0h,temp                                         'bardziej znacz¹cy bajt UBRR USART0
-   !out ubrr1h,temp
-   ldi temp,_ubrr0
-   !out ubrr0l,temp                                         'mniej znacz¹cy bajt UBRR USART0
-   ldi temp,_ubrr1
-   !out ubrr1l,temp                                         'mniej znacz¹cy bajt UBRR USART1
-   ldi temp,24                                              'w³¹czone odbiorniki i nadajniki USARTów
-   !out ucsr0b,temp
-   !out ucsr1b,temp
-   ldi temp,6                                               'N8bit
-   !out ucsr0C,temp
-   !out ucsr1C,temp
+   ldi rstemp,0
+   !out ubrr0h,rstemp                                       'bardziej znacz¹cy bajt UBRR USART0
+   !out ubrr1h,rstemp
+   ldi rstemp,_ubrr0
+   !out ubrr0l,rstemp                                       'mniej znacz¹cy bajt UBRR USART0
+   ldi rstemp,_ubrr1
+   !out ubrr1l,rstemp                                       'mniej znacz¹cy bajt UBRR USART1
+   ldi rstemp,24                                            'w³¹czone odbiorniki i nadajniki USARTów
+   !out ucsr0b,rstemp
+   !out ucsr1b,rstemp
+   ldi rstemp,6                                             'N8bit
+   !out ucsr0C,rstemp
+   !out ucsr1C,rstemp
    'ustawienia RS485
    Te = 0                                                   'domyœlnie stan odbioru
    sbi ddrd,Te_pin                                          'wyjœcie TE silnopr¹dowe

@@ -33,21 +33,18 @@ $crystal = Fcrystal
 $data
 
 'aliasy rejestrów procesora
-Temp Alias R16
-Temph Alias R17
-Rstemp Alias R18
-Rsdata Alias R19
+'Temp Alias R16
+'Temph Alias R17
+Rstemp Alias R24
+Rsdata Alias R23
 
-Wniski Alias R21
-Wwysoki Alias R22
-Wynikl Alias R31
-Wynikh Alias R24
-Tysiace Alias R25
-Setki Alias R26
-Dziesiatki Alias R27
-Jednostki Alias R28
+Wniski Alias R22
+Wwysoki Alias R21
+Wynikl Alias R20
+Wynikh Alias R19
+Liczba Alias R28
 'LICZNIK  ile bylo konwersji
-Count Alias R30
+Count Alias R17
 Te_pin Alias 4
 Te Alias Portd.te_pin
 
@@ -78,6 +75,14 @@ Dim Adcw As Long
 'CZY PRZYSZLO BOF
 Dim Czekamnaeof As Byte
 Czekamnaeof = 0
+
+
+'zmienna do uart
+Dim J As Byte
+Dim D As Byte
+Dim S As Byte
+Dim T As Byte
+
 
 
 ''RAMKI
@@ -125,10 +130,6 @@ Oblicz_adc:
    push yh                                                  'o ile potrzeba  - sprawdziæ
    push r1                                                  'o ile potrzeba  - sprawdziæ
    push r0                                                  'o ile potrzeba  - sprawdziæ
-   push tysiace
-   push setki
-   push dziesiatki
-   push jednostki
 
 
    inc Count
@@ -154,10 +155,6 @@ Oblicz_adc:
       rcall skaluj
 
 
-   pop jednostki
-   pop dziesiatki
-   pop setki
-   pop tysiace
    pop r0
    pop r1
    pop yh
@@ -268,11 +265,6 @@ Return
       ldi rstemp,0
       sts {Czekamnaeof},rstemp
 
- '  push wynikl
- '     sts {tempbyte}, wynikl
- '     Print "uart l: " ; Tempbyte
- '  pop wynikl
-
 
       Te = 1
 
@@ -282,47 +274,60 @@ Return
       LDI rstemp, znaku
       !out udr1, rstemp
 
-      ldi tysiace, 0
-      ldi setki, 0
-      ldi dziesiatki, 0
-      ldi jednostki, 0
 
+      ldi liczba,0
       rcall liczsetki
-      subi wynikl, -100
+      sts {S}, liczba
 
+            ' DO USUNIECIA< KONTROLNIE
+
+      ' DO USUNIECIA< KONTROLNIE
+      'push wynikl
+      'sts {tempbyte}, wynikl
+      'Print Tempbyte
+      'pop wynikl
 
       LDI rstemp, znaka
       RCALL czekajUDR1                                      'ZNAK A
       !out udr1, rstemp
 
+      ldi liczba, 0
       RCALL liczdziesiatki
-      subi wynikl, -10
+      sts {D}, liczba
 
+      ldi liczba, 0
       rcall liczjednostki
+      STS {J}, liczba
 
       LDI rstemp, znakrowne
       RCALL czekajUDR1                                      'ZNAK =
       !out udr1, rstemp
 
 
- 'ODKOMENTOWAC, TYLKO DO TESTU     'RCALL dziesietnyh
+  '    RCALL dziesietnyh
 
-      subi tysiace, -48
-      subi setki,-48
-      subi dziesiatki, -48
-      subi jednostki, -48
+    '  subi tysiace, -48
+     ' subi setki,-48
+      'subi dziesiatki, -48
+      'subi jednostki, -48
 
+     ' rcall czekajUDR1
+     ' !out udr1,liczba
+
+     LDS liczba, {S}
+     subi liczba, -48
       rcall czekajUDR1
-      !out udr1,tysiace
+      !out udr1,liczba
 
+      lds liczba, {D}
+      subi liczba, -48
       rcall czekajUDR1
-      !out udr1,setki
+      !out udr1,liczba
 
-      rcall czekajUDR1
-      !out udr1,dziesiatki
-
-      rcall czekajUDR1
-      !out udr1,jednostki
+      lds liczba, {J}
+      subi liczba, -48
+      rcall czekajudr1
+      !OuT udr1,liczba
 
 
       LDI rstemp, znakm
@@ -347,32 +352,32 @@ Return
       ret
 
 !liczsetki:
-   subi wynikl, 100
-   SBIC sreg,2
-      ret
-   ldi setki,1
+   inc liczba
    subi wynikl,100
-   sbic sreg,2
-      Ret
-   ldi setki,2
-   subi wynikl,100
+   sbis sreg,0
+      rjmp liczsetki
+   dec liczba
+   subi wynikl, -100
    ret
 
 
 !Liczdziesiatki:
-   SUBI wynikl,10
-   SBIC SREG,2
-      RET
-   inc dziesiatki
-   rcall liczdziesiatki
+   inc liczba
+   subi wynikl,10
+   SBIs SREG,0
+      rjmp liczdziesiatki
+   dec liczba
+   subi wynikl, -10
+   ret
 
 
 !Liczjednostki:
-   SUBI wynikl,1
-   SBIC SREG,2
-      RET
-   inc jednostki
-   rcall liczjednostki
+   inc liczba
+   subi wynikl,1
+   sbis sreg,0
+      rjmp liczjednostki
+   dec liczba
+   ret
 
 !dziesietnyh:
    SBRC wynikh,0
@@ -381,39 +386,39 @@ Return
       rcall bit1
 
    LDI rsdata,0
-   mov rstemp, jednostki
+   'mov rstemp, jednostki
    rcall sprawdz
    SBRC rsdata,0
-      SUBI jednostki,10
-   ADD dziesiatki, rsdata
+   '   SUBI jednostki,10
+   'ADD dziesiatki, rsdata
 
    LDI rsdata,0
-   mov rstemp, dziesiatki
+   'mov rstemp, dziesiatki
    rcall sprawdz
    SBRC rsdata,0
-      SUBI dziesiatki,10
-   ADD setki, rsdata
+   '   SUBI dziesiatki,10
+   'ADD setki, rsdata
 
    LDI rsdata,0
-   mov rstemp, setki
+   'mov rstemp, setki
    rcall sprawdz
    SBRC rsdata,0
-      SUBI setki,10
-   ADD tysiace, rsdata
+   '   SUBI setki,10
+  ' ADD tysiace, rsdata
 
 
    ret
 
 !bit0:
-   Subi Setki , -2
-   subi dziesiatki, -5
-   subi jednostki, -6
+   'Subi Setki , -2
+   'subi dziesiatki, -5
+   'subi jednostki, -6
    ret
 
 !bit1:
-   Subi Setki , -5
-   subi dziesiatki, -1
-   subi jednostki, -2
+   'Subi Setki , -5
+   'subi dziesiatki, -1
+   'subi jednostki, -2
    ret
 
 !sprawdz:
@@ -443,19 +448,19 @@ Return
 
 !usart_init:
 'procedura inicjalizacji USARTów
-   ldi temp,0
-   !out ubrr0h,temp                                         'bardziej znacz¹cy bajt UBRR USART0
-   !out ubrr1h,temp
-   ldi temp,_ubrr0
-   !out ubrr0l,temp                                         'mniej znacz¹cy bajt UBRR USART0
-   ldi temp,_ubrr1
-   !out ubrr1l,temp                                         'mniej znacz¹cy bajt UBRR USART1
-   ldi temp,24                                              'w³¹czone odbiorniki i nadajniki USARTów
-   !out ucsr0b,temp
-   !out ucsr1b,temp
-   ldi temp,6                                               'N8bit
-   !out ucsr0C,temp
-   !out ucsr1C,temp
+   ldi rstemp,0
+   !out ubrr0h,rstemp                                       'bardziej znacz¹cy bajt UBRR USART0
+   !out ubrr1h,rstemp
+   ldi rstemp,_ubrr0
+   !out ubrr0l,rstemp                                       'mniej znacz¹cy bajt UBRR USART0
+   ldi rstemp,_ubrr1
+   !out ubrr1l,rstemp                                       'mniej znacz¹cy bajt UBRR USART1
+   ldi rstemp,24                                            'w³¹czone odbiorniki i nadajniki USARTów
+   !out ucsr0b,rstemp
+   !out ucsr1b,rstemp
+   ldi rstemp,6                                             'N8bit
+   !out ucsr0C,rstemp
+   !out ucsr1C,rstemp
    'ustawienia RS485
    Te = 0                                                   'domyœlnie stan odbioru
    sbi ddrd,Te_pin                                          'wyjœcie TE silnopr¹dowe
